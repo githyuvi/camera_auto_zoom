@@ -3,16 +3,14 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-import 'package:image_picker/image_picker.dart';
 import '../main.dart';
-import 'package:path/path.dart' as p;
 
 
 enum ScreenMode { liveFeed, gallery }
 
+
 class CameraView extends StatefulWidget {
-  CameraView(
+  const CameraView(
       {Key? key,
       required this.title,
       required this.customPaint,
@@ -30,7 +28,7 @@ class CameraView extends StatefulWidget {
   final Future<dynamic> Function(InputImage inputImage) onImage;
   final Function(ScreenMode mode)? onScreenModeChanged;
   final CameraLensDirection initialDirection;
-  CameraController? _cameraController;
+  
 
   @override
   State<CameraView> createState() => _CameraViewState();
@@ -40,19 +38,13 @@ class _CameraViewState extends State<CameraView> {
   ScreenMode _mode = ScreenMode.liveFeed;
   CameraController? _controller;
   late Future<void> _initializeControllerFuture;
-  File? _image;
-  String? _path;
-  ImagePicker? _imagePicker;
   int _cameraIndex = -1;
   double zoomLevel = 0.0, minZoomLevel = 0.0, maxZoomLevel = 0.0;
-  final bool _allowPicker = true;
   bool _changingCameraLens = false;
 
   @override
   void initState() {
     super.initState();
-
-    _imagePicker = ImagePicker();
 
     if (cameras.any(
       (element) =>
@@ -103,22 +95,6 @@ class _CameraViewState extends State<CameraView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: [
-          if (_allowPicker)
-            Padding(
-              padding: EdgeInsets.only(right: 20.0),
-              child: GestureDetector(
-                onTap: _switchScreenMode,
-                child: Icon(
-                  _mode == ScreenMode.liveFeed
-                      ? Icons.photo_library_outlined
-                      : (Platform.isIOS
-                          ? Icons.camera_alt_outlined
-                          : Icons.camera),
-                ),
-              ),
-            ),
-        ],
       ),
       body: _body(),
       floatingActionButton: _floatingActionButton(),
@@ -145,11 +121,7 @@ class _CameraViewState extends State<CameraView> {
 
   Widget _body() {
     Widget body;
-    if (_mode == ScreenMode.liveFeed) {
-      body = _liveFeedBody();
-    } else {
-      body = _galleryBody();
-    }
+    body = _liveFeedBody();
     return body;
   }
 
@@ -157,7 +129,6 @@ class _CameraViewState extends State<CameraView> {
     if (_controller?.value.isInitialized == false) {
       return Container();
     }
-
     final size = MediaQuery.of(context).size;
     // calculate scale depending on screen and camera ratios
     // this is actually size.aspectRatio / (1 / camera.aspectRatio)
@@ -177,8 +148,8 @@ class _CameraViewState extends State<CameraView> {
             scale: scale,
             child: Center(
               child: _changingCameraLens
-                  ? Center(
-                      child: const Text('Changing camera lens'),
+                  ? const Center(
+                      child: Text('Changing camera lens'),
                     )
                   : FutureBuilder<void>(
         future: _initializeControllerFuture,
@@ -219,74 +190,6 @@ class _CameraViewState extends State<CameraView> {
     );
   }
 
-  Widget _galleryBody() {
-    return ListView(shrinkWrap: true, children: [
-      _image != null
-          ? SizedBox(
-              height: 400,
-              width: 400,
-              child: Stack(
-                fit: StackFit.expand,
-                children: <Widget>[
-                  Image.file(_image!),
-                  if (widget.customPaint != null) widget.customPaint!,
-                ],
-              ),
-            )
-          : Icon(
-              Icons.image,
-              size: 200,
-            ),
-      Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: ElevatedButton(
-          child: Text('From Gallery'),
-          onPressed: () => _getImage(ImageSource.gallery),
-        ),
-      ),
-      Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: ElevatedButton(
-          child: Text('Take a picture'),
-          onPressed: () => _getImage(ImageSource.camera),
-        ),
-      ),
-      if (_image != null)
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-              '${_path == null ? '' : 'Image path: $_path'}\n\n${widget.text ?? ''}'),
-        ),
-    ]);
-  }
-
-  Future _getImage(ImageSource source) async {
-    setState(() {
-      _image = null;
-      _path = null;
-    });
-    final pickedFile = await _imagePicker?.pickImage(source: source);
-    if (pickedFile != null) {
-      _processPickedFile(pickedFile);
-    }
-    setState(() {});
-  }
-
-  void _switchScreenMode() {
-    _image = null;
-    if (_mode == ScreenMode.liveFeed) {
-      _mode = ScreenMode.gallery;
-      _stopLiveFeed();
-    } else {
-      _mode = ScreenMode.liveFeed;
-      _startLiveFeed();
-    }
-    if (widget.onScreenModeChanged != null) {
-      widget.onScreenModeChanged!(_mode);
-    }
-    setState(() {});
-  }
-
   Future _startLiveFeed() async {
     final camera = cameras[_cameraIndex];
     _controller = CameraController(
@@ -307,8 +210,7 @@ class _CameraViewState extends State<CameraView> {
         maxZoomLevel = value;
       });
       _controller?.startImageStream(_processCameraImage);
-      setState(() {});
-    
+      setState(() {});    
   }
 
   Future _stopLiveFeed() async {
@@ -324,19 +226,6 @@ class _CameraViewState extends State<CameraView> {
     await _stopLiveFeed();
     await _startLiveFeed();
     setState(() => _changingCameraLens = false);
-  }
-
-  Future _processPickedFile(XFile? pickedFile) async {
-    final path = pickedFile?.path;
-    if (path == null) {
-      return;
-    }
-    setState(() {
-      _image = File(path);
-    });
-    _path = path;
-    final inputImage = InputImage.fromFilePath(path);
-    widget.onImage(inputImage);
   }
 
   Future _processCameraImage(CameraImage image) async {
@@ -388,18 +277,8 @@ class _CameraViewState extends State<CameraView> {
     await _controller!.stopImageStream();
     final image = await _controller?.takePicture();
     Navigator.pop(context);
-    
-    // await Navigator.of(context).pushReplacement(newRoute)
     print('display picture');
     await openDisplay(context, image);
-
-    // final imageFile = File(image!.path);
-    // var imageDirectoryPath;
-    // await Directory('storage/emulated/0/Pictures/CameraAutoZoom').create(recursive: true).then((value) {print('directory path' + value.path);imageDirectoryPath = value.path;});
-    // await imageFile.copy(imageDirectoryPath);
-
-    // print('image path ' + image!.path);
-    // print('closing camera');
       }
     }
 
@@ -435,10 +314,9 @@ Future<void> openDisplay(BuildContext context, XFile? image ) async {
                 ),
               ),
             );
-
   print('image path ' + image!.path);
   print('closing camera');
-  final imageFile = File(image!.path);
+  final imageFile = File(image.path);
   var imageDirectoryPath;
   await Directory('storage/emulated/0/Pictures/CameraAutoZoom').create(recursive: true).then((value) {print('directory path' + value.path);imageDirectoryPath = value.path;});
   await imageFile.copy('$imageDirectoryPath/img${DateTime.now().toString()}.jpg');
