@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +6,7 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:image_picker/image_picker.dart';
 import '../main.dart';
+import 'package:path/path.dart' as p;
 
 
 enum ScreenMode { liveFeed, gallery }
@@ -94,7 +94,7 @@ class _CameraViewState extends State<CameraView> {
 
   @override
   void dispose() {
-    _stopLiveFeed();
+    // _stopLiveFeed();
     super.dispose();
   }
 
@@ -388,19 +388,18 @@ class _CameraViewState extends State<CameraView> {
     await _controller!.stopImageStream();
     final image = await _controller?.takePicture();
     Navigator.pop(context);
-
+    
     // await Navigator.of(context).pushReplacement(newRoute)
-    await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => DisplayPictureScreen(
-                  // Pass the automatically generated path to
-                  // the DisplayPictureScreen widget.
-                  imagePath: image!.path,
-                ),
-              ),
-            );
-    print('image path ' + image!.path);
-    print('closing camera');
+    print('display picture');
+    await openDisplay(context, image);
+
+    // final imageFile = File(image!.path);
+    // var imageDirectoryPath;
+    // await Directory('storage/emulated/0/Pictures/CameraAutoZoom').create(recursive: true).then((value) {print('directory path' + value.path);imageDirectoryPath = value.path;});
+    // await imageFile.copy(imageDirectoryPath);
+
+    // print('image path ' + image!.path);
+    // print('closing camera');
       }
     }
 
@@ -423,4 +422,24 @@ class DisplayPictureScreen extends StatelessWidget {
       body: Image.file(File(imagePath)),
     );
   }
+}
+
+
+Future<void> openDisplay(BuildContext context, XFile? image ) async {
+  await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => DisplayPictureScreen(
+                  // Pass the automatically generated path to
+                  // the DisplayPictureScreen widget.
+                  imagePath: image!.path,
+                ),
+              ),
+            );
+
+  print('image path ' + image!.path);
+  print('closing camera');
+  final imageFile = File(image!.path);
+  var imageDirectoryPath;
+  await Directory('storage/emulated/0/Pictures/CameraAutoZoom').create(recursive: true).then((value) {print('directory path' + value.path);imageDirectoryPath = value.path;});
+  await imageFile.copy(imageDirectoryPath);
 }

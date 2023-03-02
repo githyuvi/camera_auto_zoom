@@ -10,6 +10,7 @@ List<CameraDescription> cameras = [];
 Future<void> main() async{
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
+  Permission.manageExternalStorage.request();
   cameras.forEach((element) => print('available camera' + element.name + 'lens direction : ${element.lensDirection} sensor orientation: ${element.sensorOrientation}'),);
   runApp(MyApp());
 }
@@ -32,11 +33,13 @@ class HomePage extends StatelessWidget {
     // TODO: implement build
     return Scaffold(appBar: AppBar(title: Text('Camera Zoom')),
       body: Center(child: ElevatedButton(
-      onPressed: () {
-        Permission.manageExternalStorage.request().isGranted.then((value) {
+      onPressed: () async {
+        await Permission.storage.request().isGranted.then((value) {
+          print(value);
           if(value)
             Navigator.push(context, MaterialPageRoute(builder: (context) => ObjectDetectorView()));
         });
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => ObjectDetectorView()));
          },
       child: Text('Take Picture'),
       )),);
