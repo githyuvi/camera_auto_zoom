@@ -441,5 +441,5 @@ Future<void> openDisplay(BuildContext context, XFile? image ) async {
   final imageFile = File(image!.path);
   var imageDirectoryPath;
   await Directory('storage/emulated/0/Pictures/CameraAutoZoom').create(recursive: true).then((value) {print('directory path' + value.path);imageDirectoryPath = value.path;});
-  await imageFile.copy(imageDirectoryPath);
+  await imageFile.copy('$imageDirectoryPath/img${DateTime.now().toString()}.jpg');
 }
